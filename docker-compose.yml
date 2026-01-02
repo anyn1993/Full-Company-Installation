@@ -1,0 +1,359 @@
+services:
+  # Caddy - Modern Reverse Proxy with Automatic HTTPS
+  # Caddy automatically handles Let's Encrypt certificates - no configuration needed!
+  # HTML templates are processed at startup to inject environment variables
+  caddy:
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - BASE_DOMAIN=${BASE_DOMAIN:-example.com}
+      - SSL_EMAIL=${SSL_EMAIL:-admin@example.com}
+      - ODOO_SUBDOMAIN=${ODOO_SUBDOMAIN:-odoo}
+      - OPENSIGN_SUBDOMAIN=${OPENSIGN_SUBDOMAIN:-opensign}
+      - NEXTCLOUD_SUBDOMAIN=${NEXTCLOUD_SUBDOMAIN:-nextcloud}
+      - MATTERMOST_SUBDOMAIN=${MATTERMOST_SUBDOMAIN:-mattermost}
+      - PORTAINER_SUBDOMAIN=${PORTAINER_SUBDOMAIN:-portainer}
+      - TZ=${TZ:-Europe/Madrid}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - company_network
+    depends_on:
+      - odoo-web
+      - opensign-server
+      - opensign-client
+      - nextcloud
+      - mattermost
+      - portainer
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Odoo Web Application
+  odoo-web:
+    image: odoo:latest
+    container_name: odoo-web
+    depends_on:
+      - odoo-db
+    restart: always
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - HOST=odoo-db
+      - USER=${POSTGRES_USER:-odoo}
+      - PASSWORD=${POSTGRES_PASSWORD:-odoo}
+    volumes:
+      - ./odoo/web_data:/var/lib/odoo
+      - ./odoo/conf:/etc/odoo
+      - ./odoo/extra-addons:/mnt/extra-addons
+      - ./odoo/addons/web:/mnt/web
+      - ./odoo/addons/reporting-engine:/mnt/report-engine
+      - ./odoo/addons/manufacture:/mnt/manufacture
+      - ./odoo/addons/purchase-workflow:/mnt/purchase-workflow
+      - ./odoo/addons/icons:/usr/lib/python3/dist-packages/odoo/addons/hr_holidays/static/src/img/icons
+    networks:
+      - company_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Odoo Database
+  odoo-db:
+    image: postgres:15
+    container_name: odoo-db
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-odoo}
+      - POSTGRES_USER=${POSTGRES_USER:-odoo}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    restart: always
+    volumes:
+      - ./odoo/db_data:/var/lib/postgresql/data/pgdata
+    networks:
+      - company_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # OpenSign MongoDB Database
+  opensign-mongo:
+    image: mongo:latest
+    container_name: opensign-mongo
+    restart: always
+    volumes:
+      - ./open-sign-forms/mongodb-data:/data/db
+    networks:
+      - company_network
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # OpenSign Server (Parse Server backend)
+  opensign-server:
+    image: opensign/opensignserver:main
+    container_name: opensign-server
+    restart: always
+    depends_on:
+      - opensign-mongo
+    volumes:
+      - ./open-sign-forms/opensign-files:/usr/src/app/files
+    environment:
+      - NODE_ENV=production
+      - TZ=${TZ:-Europe/Madrid}
+      # MongoDB connection - OpenSign uses MONGODB_URI
+      - MONGODB_URI=mongodb://opensign-mongo:27017/opensign
+      - DATABASE_URI=mongodb://opensign-mongo:27017/opensign
+      # Parse Server configuration - use simple defaults to match client
+      # The client entrypoint only passes SERVERURL to env.js, so it defaults to "opensign" for APPID
+      - APP_ID=opensign
+      - MASTER_KEY=XnAadwKxxByMr
+      # Server URLs
+      - SERVER_URL=https://${OPENSIGN_SUBDOMAIN:-opensign}.${BASE_DOMAIN:-example.com}/api/app
+      - PUBLIC_URL=https://${OPENSIGN_SUBDOMAIN:-opensign}.${BASE_DOMAIN:-example.com}
+      # File storage
+      - USE_LOCAL=true
+      - LOCAL_STORAGE_PATH=/usr/src/app/files
+    networks:
+      - company_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # OpenSign Client (React frontend)
+  opensign-client:
+    image: opensign/opensign:main
+    container_name: opensign-client
+    restart: always
+    depends_on:
+      - opensign-server
+    networks:
+      - company_network
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      # Server connection
+      - REACT_APP_SERVERURL=https://${OPENSIGN_SUBDOMAIN:-opensign}.${BASE_DOMAIN:-example.com}/api/app
+      - REACT_APP_APPID=${OPENSIGN_APPID:-opensignappid}
+      - REACT_APP_JAVASCRIPT_KEY=${OPENSIGN_JAVASCRIPTKEY:-opensignjavascriptkey}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nextcloud Database
+  nextcloud-db:
+    image: mariadb:10.11
+    container_name: nextcloud-db
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - ./nextcloud/db_data:/var/lib/mysql
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - MYSQL_ROOT_PASSWORD=${NEXTCLOUD_DB_ROOT_PASSWORD:-nextcloud_root}
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD:-nextcloud}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MARIADB_AUTO_UPGRADE=1
+      - MARIADB_DISABLE_UPGRADE_BACKUP=1
+    networks:
+      - company_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nextcloud Redis Cache
+  nextcloud-redis:
+    image: redis:alpine
+    container_name: nextcloud-redis
+    restart: always
+    networks:
+      - company_network
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nextcloud Application
+  nextcloud:
+    image: nextcloud:stable
+    container_name: nextcloud
+    restart: always
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    volumes:
+      - ./nextcloud/html:/var/www/html
+      - ./nextcloud/data:/var/www/html/data
+      - ./nextcloud/config:/var/www/html/config
+      - ./nextcloud/custom_apps:/var/www/html/custom_apps
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - MYSQL_HOST=nextcloud-db
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD:-nextcloud}
+      - REDIS_HOST=nextcloud-redis
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-admin}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-admin}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_SUBDOMAIN}.${BASE_DOMAIN}
+      - TRUSTED_PROXIES=caddy
+      - OVERWRITEHOST=${NEXTCLOUD_SUBDOMAIN}.${BASE_DOMAIN}
+      - OVERWRITEPROTOCOL=https
+      - OVERWRITECLIURL=https://${NEXTCLOUD_SUBDOMAIN}.${BASE_DOMAIN}
+      - OVERWRITEWEBROOT=/
+    networks:
+      - company_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nextcloud Cron Job
+  nextcloud-cron:
+    image: nextcloud:stable
+    container_name: nextcloud-cron
+    restart: always
+    depends_on:
+      - nextcloud
+      - nextcloud-db
+      - nextcloud-redis
+    volumes:
+      - ./nextcloud/html:/var/www/html
+      - ./nextcloud/data:/var/www/html/data
+      - ./nextcloud/config:/var/www/html/config
+      - ./nextcloud/custom_apps:/var/www/html/custom_apps
+    entrypoint: /cron.sh
+    networks:
+      - company_network
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Mattermost Database
+  mattermost-db:
+    image: postgres:15-alpine
+    container_name: mattermost-db
+    restart: always
+    volumes:
+      - ./mattermost/db_data:/var/lib/postgresql/data
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - POSTGRES_USER=mattermost
+      - POSTGRES_PASSWORD=${MATTERMOST_DB_PASSWORD:-mattermost}
+      - POSTGRES_DB=mattermost
+    networks:
+      - company_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Mattermost Application
+  mattermost:
+    image: mattermost/mattermost-team-edition:latest
+    container_name: mattermost
+    restart: always
+    depends_on:
+      - mattermost-db
+    # Use named volumes to avoid permission issues (container runs as UID 2000)
+    volumes:
+      - mattermost_config:/mattermost/config
+      - mattermost_data:/mattermost/data
+      - mattermost_logs:/mattermost/logs
+      - mattermost_plugins:/mattermost/plugins
+      - mattermost_client_plugins:/mattermost/client/plugins
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      # Database configuration
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://mattermost:${MATTERMOST_DB_PASSWORD:-mattermost}@mattermost-db:5432/mattermost?sslmode=disable&connect_timeout=10
+      # Site URL (required for proper link generation)
+      - MM_SERVICESETTINGS_SITEURL=https://${MATTERMOST_SUBDOMAIN:-mattermost}.${BASE_DOMAIN:-example.com}
+      - MM_SERVICESETTINGS_ENABLELOCALMODE=true
+      # Disable telemetry
+      - MM_LOGSETTINGS_ENABLEDIAGNOSTICS=false
+      # File storage settings
+      - MM_FILESETTINGS_DRIVERNAME=local
+      - MM_FILESETTINGS_DIRECTORY=/mattermost/data
+    networks:
+      - company_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Portainer - Docker Management UI
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+    networks:
+      - company_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Named volumes for data persistence
+volumes:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  # Mattermost volumes (avoids permission issues with UID 2000)
+  mattermost_config:
+    driver: local
+  mattermost_data:
+    driver: local
+  mattermost_logs:
+    driver: local
+  mattermost_plugins:
+    driver: local
+  mattermost_client_plugins:
+    driver: local
+  portainer_data:
+    driver: local
+
+networks:
+  company_network:
+    driver: bridge
+    name: ${DOCKER_NETWORK:-company_network}

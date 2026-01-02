@@ -1,0 +1,42 @@
+services:
+  server:
+    image: opensign/opensignserver:main
+    container_name: opensign-server
+    volumes:
+      - ./opensign-files:/usr/src/app/files
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mongo
+    env_file: .env.prod
+    environment:
+      - NODE_ENV=production
+      - SERVER_URL=${HOST_URL}/api/app
+      - PUBLIC_URL=${HOST_URL}
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo-db
+    volumes:
+      - ./mongodb-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+
+  client:
+    image: opensign/opensign:main
+    container_name: opensign-client
+    depends_on:
+      - server
+    env_file: .env.prod
+    ports:
+      - "3002:3000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

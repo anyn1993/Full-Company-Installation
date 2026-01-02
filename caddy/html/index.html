@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Services Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            padding: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            font-size: 1.8em;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .service-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f0f4f8 100%);
+            border-radius: 16px;
+            padding: 24px 20px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+            border: 2px solid #e8eef3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            border-color: #4f46e5;
+        }
+        
+        .service-icon {
+            font-size: 2.5em;
+            margin-bottom: 12px;
+        }
+        
+        .service-card h2 {
+            font-size: 1.15em;
+            margin-bottom: 8px;
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+        
+        .service-card p {
+            color: #666;
+            margin-bottom: 16px;
+            line-height: 1.5;
+            font-size: 0.85em;
+            flex-grow: 1;
+        }
+        
+        .open-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .service-card:hover .open-btn {
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+            transform: scale(1.05);
+        }
+        
+        .info-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .info-section h3 {
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+        
+        .info-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .info-section li {
+            padding: 6px 0;
+            color: #555;
+            line-height: 1.5;
+            font-size: 0.9em;
+        }
+        
+        .info-section li::before {
+            content: "✓ ";
+            color: #4f46e5;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        
+        .credentials {
+            background: #fef9c3;
+            border-left: 4px solid #eab308;
+            padding: 12px 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .credentials strong {
+            color: #854d0e;
+        }
+        
+        code {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #be185d;
+        }
+        
+        .important-note {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+            color: #1e40af;
+            font-size: 0.9em;
+        }
+        
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .collapsible::after {
+            content: '▼';
+            font-size: 0.7em;
+            transition: transform 0.3s ease;
+        }
+        
+        .collapsible.collapsed::after {
+            transform: rotate(-90deg);
+        }
+        
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsible-content.collapsed {
+            max-height: 0;
+            padding: 0;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .services-grid {
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                gap: 12px;
+            }
+            
+            .service-card {
+                padding: 18px 12px;
+            }
+            
+            .service-icon {
+                font-size: 2em;
+            }
+            
+            .service-card h2 {
+                font-size: 1em;
+            }
+            
+            .service-card p {
+                font-size: 0.8em;
+                margin-bottom: 12px;
+            }
+            
+            .open-btn {
+                padding: 8px 18px;
+                font-size: 0.85em;
+            }
+            
+            .info-section {
+                padding: 15px;
+            }
+            
+            .info-section h3 {
+                font-size: 1em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px 12px;
+                border-radius: 15px;
+            }
+            
+            h1 {
+                font-size: 1.3em;
+            }
+            
+            .subtitle {
+                font-size: 0.85em;
+                margin-bottom: 20px;
+            }
+            
+            .services-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            
+            .service-card {
+                padding: 15px 10px;
+            }
+            
+            .service-icon {
+                font-size: 1.8em;
+                margin-bottom: 8px;
+            }
+            
+            .service-card h2 {
+                font-size: 0.9em;
+            }
+            
+            .service-card p {
+                display: none;
+            }
+            
+            .open-btn {
+                padding: 8px 16px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 Company Services</h1>
+        <p class="subtitle">Secure access to all your business applications</p>
+        
+        <div class="services-grid">
+            <a href="https://${ODOO_SUBDOMAIN}.${BASE_DOMAIN}" target="_blank" class="service-card">
+                <span class="service-icon">📊</span>
+                <h2>Odoo ERP</h2>
+                <p>Business management & planning</p>
+                <span class="open-btn">Open Odoo</span>
+            </a>
+            
+            <a href="https://${OPENSIGN_SUBDOMAIN}.${BASE_DOMAIN}" target="_blank" class="service-card">
+                <span class="service-icon">✍️</span>
+                <h2>OpenSign</h2>
+                <p>Digital document signing</p>
+                <span class="open-btn">Open OpenSign</span>
+            </a>
+            
+            <a href="https://${NEXTCLOUD_SUBDOMAIN}.${BASE_DOMAIN}" target="_blank" class="service-card">
+                <span class="service-icon">☁️</span>
+                <h2>Nextcloud</h2>
+                <p>Files, calendar & collaboration</p>
+                <span class="open-btn">Open Nextcloud</span>
+            </a>
+            
+            <a href="https://${MATTERMOST_SUBDOMAIN}.${BASE_DOMAIN}" target="_blank" class="service-card">
+                <span class="service-icon">💬</span>
+                <h2>Mattermost</h2>
+                <p>Team chat & messaging</p>
+                <span class="open-btn">Open Mattermost</span>
+            </a>
+            
+            <a href="https://${PORTAINER_SUBDOMAIN}.${BASE_DOMAIN}" target="_blank" class="service-card">
+                <span class="service-icon">🐳</span>
+                <h2>Portainer</h2>
+                <p>Docker management UI</p>
+                <span class="open-btn">Open Portainer</span>
+            </a>
+        </div>
+        
+        <div class="info-section">
+            <h3 class="collapsible" onclick="toggleSection(this)">📋 First Time Setup</h3>
+            <div class="collapsible-content">
+                <div class="credentials">
+                    <strong>Odoo:</strong> Follow the setup wizard. Master password in <code>odoo/master-password.txt</code>
+                </div>
+                <div class="credentials">
+                    <strong>OpenSign:</strong> Create your admin account on first access
+                </div>
+                <div class="credentials">
+                    <strong>Nextcloud:</strong> Username and password from your <code>.env</code> file
+                </div>
+                <div class="credentials">
+                    <strong>Mattermost:</strong> Create admin account and follow team setup wizard
+                </div>
+                <div class="credentials">
+                    <strong>Portainer:</strong> Set admin credentials on first access
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h3 class="collapsible collapsed" onclick="toggleSection(this)">✨ Features</h3>
+            <div class="collapsible-content collapsed">
+                <ul>
+                    <li>Automatic SSL/TLS certificates (Let's Encrypt)</li>
+                    <li>Clean subdomain routing</li>
+                    <li>Single <code>.env</code> configuration file</li>
+                    <li>Persistent data with easy backup</li>
+                    <li>Auto-restart on failure</li>
+                    <li>Isolated Docker network</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h3 class="collapsible collapsed" onclick="toggleSection(this)">🔧 Quick Commands</h3>
+            <div class="collapsible-content collapsed">
+                <ul>
+                    <li><code>docker compose up -d</code> - Start services</li>
+                    <li><code>docker compose down</code> - Stop services</li>
+                    <li><code>docker compose logs -f</code> - View logs</li>
+                    <li><code>docker compose ps</code> - Check status</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h3 class="collapsible collapsed" onclick="toggleSection(this)">⚠️ Troubleshooting</h3>
+            <div class="collapsible-content collapsed">
+                <div class="credentials">
+                    <strong>Portainer shows "API version too old" error:</strong><br>
+                    This is a known issue with Docker 29.x and Portainer. Run these commands to fix:
+                </div>
+                <ul>
+                    <li><code>sudo systemctl edit docker.service</code></li>
+                    <li>Add above the "Lines below will be discarded" line:<br>
+                        <code>[Service]</code><br>
+                        <code>Environment=DOCKER_MIN_API_VERSION=1.24</code></li>
+                    <li>Save and exit, then run: <code>sudo systemctl restart docker</code></li>
+                    <li>Finally: <code>docker compose restart portainer</code></li>
+                </ul>
+                <div class="important-note">
+                    This configures Docker to accept older API versions. See 
+                    <a href="https://github.com/portainer/portainer/issues/12925" target="_blank" style="color: #1e40af;">GitHub issue #12925</a> for updates.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleSection(header) {
+            header.classList.toggle('collapsed');
+            const content = header.nextElementSibling;
+            content.classList.toggle('collapsed');
+        }
+    </script>
+</body>
+</html>

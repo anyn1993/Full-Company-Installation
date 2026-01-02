@@ -1,0 +1,96 @@
+# Caddyfile - Automatic HTTPS Reverse Proxy Configuration
+# Caddy automatically handles Let's Encrypt certificates - no configuration needed!
+
+# Global options
+{
+	# Email for Let's Encrypt notifications
+	email {$SSL_EMAIL:admin@example.com}
+	
+	# Uncomment for staging/testing (avoids Let's Encrypt rate limits)
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# Odoo - ERP System
+{$ODOO_SUBDOMAIN:odoo}.{$BASE_DOMAIN:example.com} {
+	reverse_proxy odoo-web:8069 {
+		# Handle large file uploads and long connections
+		transport http {
+			read_timeout 720s
+			write_timeout 720s
+		}
+	}
+	
+	# Set proper headers for Odoo
+	header {
+		X-Forwarded-Proto {scheme}
+		X-Forwarded-Host {host}
+	}
+}
+
+# OpenSign - Document Signing
+{$OPENSIGN_SUBDOMAIN:opensign}.{$BASE_DOMAIN:example.com} {
+	# API routes go to server - strip /api prefix and forward to /app
+	handle /api/app* {
+		uri strip_prefix /api
+		reverse_proxy opensign-server:8080 {
+			transport http {
+				read_timeout 300s
+			}
+		}
+	}
+	
+	# Files endpoint
+	handle /api/files/* {
+		uri strip_prefix /api
+		reverse_proxy opensign-server:8080
+	}
+	
+	# Everything else goes to client
+	handle {
+		reverse_proxy opensign-client:3000
+	}
+}
+
+# Nextcloud - File Storage & Collaboration
+{$NEXTCLOUD_SUBDOMAIN:nextcloud}.{$BASE_DOMAIN:example.com} {
+	reverse_proxy nextcloud:80 {
+		# Disable buffering for large file uploads
+		flush_interval -1
+	}
+	
+	# CalDAV and CardDAV redirects
+	redir /.well-known/carddav /remote.php/dav 301
+	redir /.well-known/caldav /remote.php/dav 301
+	
+	# Security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+	}
+}
+
+# Mattermost - Team Chat
+{$MATTERMOST_SUBDOMAIN:mattermost}.{$BASE_DOMAIN:example.com} {
+	reverse_proxy mattermost:8065 {
+		# WebSocket support is automatic in Caddy
+		flush_interval -1
+	}
+}
+
+# Portainer - Docker Management
+{$PORTAINER_SUBDOMAIN:portainer}.{$BASE_DOMAIN:example.com} {
+	reverse_proxy portainer:9000 {
+		# WebSocket support for terminal
+		flush_interval -1
+	}
+}
+
+# Base domain - Dashboard/Landing page
+{$BASE_DOMAIN:example.com} {
+	root * /srv/html
+	file_server
+	
+	# Fallback to index.html
+	try_files {path} /index.html
+}
+

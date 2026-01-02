@@ -1,0 +1,38 @@
+# Environment files
+.env
+
+# Data directories
+odoo/db_data/
+odoo/web_data/
+odoo/addons/
+open-sign-forms/mongodb-data/
+open-sign-forms/opensign-files/
+open-sign-forms/.env.prod
+nextcloud/db_data/
+nextcloud/html/
+nextcloud/data/
+nextcloud/config/
+nextcloud/custom_apps/
+mattermost/db_data/
+mattermost/config/
+mattermost/data/
+mattermost/logs/
+mattermost/plugins/
+portainer/data/
+traefik/letsencrypt/
+
+# Backup files
+*.sql
+*.tar.gz
+backup_*/
+
+# Docker volumes
+volumes/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+

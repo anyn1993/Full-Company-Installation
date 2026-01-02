@@ -1,0 +1,57 @@
+version: '3.1'
+
+services:
+  web:
+    image: odoo:latest
+    container_name: odoo-web
+    depends_on:
+      - db
+    ports:
+      - "8069:8069"
+    restart: always
+    environment:
+      - TZ=Europe/Madrid
+    volumes:
+      - odoo_web_data:/var/lib/odoo
+      - ./conf:/etc/odoo
+      - odoo_extra_addons:/mnt/extra-addons
+      - odoo_web_addons:/mnt/web
+      - odoo_reporting_engine_addons:/mnt/report-engine
+      - odoo_manufacture_addons:/mnt/manufacture
+      - odoo_purchase_workflow_addons:/mnt/purchase-workflow
+      - odoo_icons:/usr/lib/python3/dist-packages/odoo/addons/hr_holidays/static/src/img/icons
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  db:
+    image: postgres:15
+    container_name: odoo-db
+    environment:
+      - TZ=Europe/Madrid
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_USER=odoo
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    restart: always
+    volumes:
+      - odoo_db_data:/var/lib/postgresql/data/pgdata
+    ports:
+      - "54322:5432"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        
+volumes:
+  odoo_db_data:
+  odoo_web_data:
+  odoo_extra_addons:
+  odoo_web_addons:
+  odoo_reporting_engine_addons:
+  odoo_manufacture_addons:
+  odoo_purchase_workflow_addons:
+  odoo_icons:
